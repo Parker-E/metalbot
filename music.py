@@ -132,7 +132,6 @@ class Music(commands.Cog):
         """Displays information about the current song."""
         state = self.get_state(ctx.guild)
         message = await ctx.send("", embed=state.now_playing.get_embed())
-        await self._add_reaction_controls(message)
 
     @commands.command(aliases=["q", "playlist"])
     @commands.check(audio_playing)
@@ -191,7 +190,6 @@ class Music(commands.Cog):
             state.playlist.append(video)
             message = await ctx.send(
                 "Added to queue.", embed=video.get_embed())
-            await self._add_reaction_controls(message)
         else:
             if ctx.author.voice != None and ctx.author.voice.channel != None:
                 channel = ctx.author.voice.channel
@@ -204,56 +202,11 @@ class Music(commands.Cog):
                 client = await channel.connect()
                 self._play_song(client, state, video)
                 message = await ctx.send("", embed=video.get_embed())
-                await self._add_reaction_controls(message)
                 print(f"Now playing '{video.title}'")
             else:
                 raise commands.CommandError(
                     "You need to be in a voice channel to do that.")
 
-    async def on_reaction_add(self, reaction, user):
-        """Respods to reactions added to the bot's messages, allowing reactions to control playback."""
-        message = reaction.message
-        if user != self.bot.user and message.author == self.bot.user:
-            await message.remove_reaction(reaction, user)
-            if message.guild and message.guild.voice_client:
-                user_in_channel = user.voice and user.voice.channel and user.voice.channel == message.guild.voice_client.channel
-                permissions = message.channel.permissions_for(user)
-                guild = message.guild
-                state = self.get_state(guild)
-                if permissions.administrator or (user_in_channel and state.is_requester(user)):
-                    client = message.guild.voice_client
-                    if reaction.emoji == "⏯":
-                        # pause audio
-                        self._pause_audio(client)
-                    elif reaction.emoji == "⏭":
-                        # skip audio
-                        client.stop()
-                    elif reaction.emoji == "⏮":
-                        state.playlist.insert(
-                            0, state.now_playing
-                        )  # insert current song at beginning of playlist
-                        client.stop()  # skip ahead
-                elif reaction.emoji == "⏭" and self.config["vote_skip"] and user_in_channel and message.guild.voice_client and message.guild.voice_client.channel:
-                    # ensure that skip was pressed, that vote skipping is enabled, the user is in the channel, and that the bot is in a voice channel
-                    voice_channel = message.guild.voice_client.channel
-                    self._vote_skip(voice_channel, user)
-                    # announce vote
-                    channel = message.channel
-                    users_in_channel = len([
-                        member for member in voice_channel.members
-                        if not member.bot
-                    ])  # don't count bots
-                    required_votes = math.ceil(
-                        self.config["vote_skip_ratio"] * users_in_channel)
-                    await channel.send(
-                        f"{user.mention} voted to skip ({len(state.skip_votes)}/{required_votes} votes)"
-                    )
-
-    async def _add_reaction_controls(self, message):
-        """Adds a 'control-panel' of reactions to a message that can be used to control the bot."""
-        CONTROLS = ["⏮", "⏯", "⏭"]
-        for control in CONTROLS:
-            await message.add_reaction(control)
 
 class GuildState:
     """Helper class managing per-guild state."""

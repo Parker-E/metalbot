@@ -21,26 +21,16 @@ class Video:
     def __init__(self, url_or_search, requested_by):
         """Plays audio from (or searches for) a URL."""
         with ytdl.YoutubeDL(ytdl_options) as ydl:
-            video = self._get_info(url_or_search)
-            video_format = video["formats"][0]
+            info_dict = ydl.extract_info(url_or_search, download=False)
+            video_format = info_dict["formats"][0]
             self.stream_url = video_format["url"]
-            self.video_url = video["webpage_url"]
-            self.title = video["title"]
-            self.uploader = video["uploader"] if "uploader" in video else ""
-            self.thumbnail = video[
-                "thumbnail"] if "thumbnail" in video else None
+            self.video_url = info_dict["webpage_url"]
+            self.title = info_dict['entries'][0]['title']
+            self.uploader = info_dict['entries'][0]["uploader"] if "uploader" in info_dict['entries'][0] else ""
+            self.thumbnail = info_dict['entries'][0]["thumbnail"] if "thumbnail" in info_dict['entries'][0] else None
             self.requested_by = requested_by
 
-    def _get_info(self, video_url):
-        with ytdl.YoutubeDL(ytdl_options) as ydl:
-            info = ydl.extract_info(video_url, download=False)
-            video = None
-            if "_type" in info and info["_type"] == "playlist":
-                return self._get_info(
-                    info["entries"][0]["url"])  # get info for first video
-            else:
-                video = info
-            return video
+
 
     def get_embed(self):
         """Makes an embed out of this Video's information."""
