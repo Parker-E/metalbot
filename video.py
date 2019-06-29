@@ -22,7 +22,7 @@ class Video:
         """Plays audio from (or searches for) a URL."""
         with ytdl.YoutubeDL(ytdl_options) as ydl:
             info_dict = ydl.extract_info(url_or_search, download=False)
-            self.stream_url = video_format['entries'][0]["url"]
+            self.stream_url = info_dict['entries'][0]["url"]
             self.video_url = info_dict["webpage_url"]
             self.title = info_dict['entries'][0]['title']
             self.uploader = info_dict['entries'][0]["uploader"] if "uploader" in info_dict['entries'][0] else ""
